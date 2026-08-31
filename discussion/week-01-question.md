@@ -1,0 +1,1 @@
+When an AI coding agent gives a statistical answer that looks reasonable, what is the most reliable way to check whether it is actually correct: mathematical reasoning, simulation, or comparing the result with documentation? How should we decide which method to use?
