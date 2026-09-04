@@ -1,7 +1,15 @@
 ---
 output:
-  pdf_document: default
+  pdf_document:
+    fig_width: 5.0
+    fig_height: 2.0
+    keep_tex: false
   html_document: default
+geometry: margin=0.2in
+header-includes:
+  - \usepackage{setspace}
+  - \setstretch{0.75}
+  - \AtBeginDocument{\fontsize{9}{10}\selectfont}
 ---
 # Question 1(a)
 
