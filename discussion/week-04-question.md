@@ -1,7 +1,7 @@
 ---
-id: w04-jyan36-correlated-selection
-title: "Lasso Selection with Correlated Predictors"
+id: w04-jyan36-thresholding-tradeoffs
+title: "Lasso Thresholding Tradeoffs"
 author: jyan36
 ---
 
-Suppose two standardized predictors are highly correlated and both are related to the response. Why might the lasso select one predictor in one training sample but the other predictor in a different sample, even when the two fitted models have similar prediction error? How would increasing $\lambda$ affect this behavior?
+Lasso has a thresholding mechanism that sets sufficiently small coefficients exactly to zero. How does increasing $\lambda$ change this threshold, and what are the potential benefits and risks of "killing off" more predictors?
