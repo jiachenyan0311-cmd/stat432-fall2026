@@ -1,0 +1,473 @@
+---
+title: "Homework 05"
+engine: knitr
+format:
+  pdf:
+    pdf-engine: xelatex
+    papersize: letter
+    fontsize: 10pt
+    geometry: margin=0.75in
+    include-in-header:
+      text: |
+        \usepackage{fvextra}
+        \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\}}
+        \RecustomVerbatimEnvironment{verbatim}{Verbatim}{breaklines}
+        \usepackage{etoolbox}
+        \BeforeBeginEnvironment{verbatim}{\par\noindent\begin{minipage}{\linewidth}}
+        \AfterEndEnvironment{verbatim}{\end{minipage}\par}
+execute:
+  warning: false
+  message: false
+---
+
+## Question 1: Estimate the bias and variance of KNN
+
+### (a)
+
+The true mean response at the target is
+
+$$
+f(\mathbf{x}_0) = 0.5(0.5) + \sin(0.7) - 0.3(1)^2
+\approx 0.594218.
+$$
+
+```{r}
+library(FNN)
+set.seed(43251)
+n = 400
+p = 3
+k_values = seq(1, 29, 2)
+x0 = matrix(c(0.5, 0.7, 1), nrow = 1)
+f0 = 0.5*x0[1,1] + sin(x0[1,2]) - 0.3*x0[1,3]^2
+X = matrix(rnorm(n*p), nrow = n)
+y = 0.5*X[,1] + sin(X[,2]) - 0.3*X[,3]^2 +
+  rnorm(n, sd = 0.1)
+pred = numeric(length(k_values))
+for (m in seq_along(k_values)) {
+  knn.fit = knn.reg(X, x0, y, k = k_values[m], algorithm = "brute")
+  pred[m] = knn.fit$pred
+}
+data.frame(k = k_values, prediction = pred, truth = f0)
+```
+
+### (b)
+
+Each of the 200 repetitions uses one new training dataset for all values
+of $k$. Rows of `pred_matrix` represent repetitions; columns represent $k$.
+
+```{r}
+set.seed(43252)
+nsim = 200
+pred_matrix = matrix(NA_real_, nrow = nsim, ncol = length(k_values))
+for (l in seq_len(nsim)) {
+  X = matrix(rnorm(n*p), nrow = n)
+  y = 0.5*X[,1] + sin(X[,2]) - 0.3*X[,3]^2 +
+    rnorm(n, sd = 0.1)
+  for (m in seq_along(k_values)) {
+    knn.fit = knn.reg(X, x0, y, k = k_values[m], algorithm = "brute")
+    pred_matrix[l, m] = knn.fit$pred
+  }
+}
+mean_pred = colMeans(pred_matrix)
+bias = mean_pred - f0
+variance = colMeans(sweep(pred_matrix, 2, mean_pred, "-")^2)
+mse = colMeans((pred_matrix - f0)^2)
+results = data.frame(k = k_values, bias = bias, squared_bias = bias^2,
+                     variance = variance, MSE = mse)
+results
+max_difference = max(abs(mse - (bias^2 + variance)))
+max_difference
+```
+
+The variance uses divisor 200. The maximum absolute difference between
+MSE and squared bias plus variance is
+`r format(max_difference, scientific = TRUE, digits = 3)`, verifying the
+decomposition up to numerical rounding.
+
+```{r}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.5
+q1_plot_data = data.frame(
+  k = k_values,
+  squared_bias = bias^2,
+  variance = variance,
+  MSE = mse
+)
+matplot(
+  k_values, cbind(bias^2, variance, mse),
+  type = "b", pch = c(1, 2, 3), lty = 1,
+  col = c("darkorange", "deepskyblue3", "black"),
+  xlab = "Number of neighbors k", ylab = "Squared error",
+  ylim = c(0, max(bias^2, variance, mse))
+)
+legend(
+  "topright", legend = c("Squared bias", "Variance", "MSE"),
+  col = c("darkorange", "deepskyblue3", "black"),
+  lty = 1, pch = c(1, 2, 3)
+)
+```
+
+As $k$ increases, variance generally decreases because more observations
+are averaged, while bias tends to increase because more distant observations
+are included. An intermediate $k$ can therefore minimize MSE. Similarly,
+stronger regularization in ridge regression and lasso reduces model
+flexibility and variance but can increase bias.
+
+## Question 2: Compare KNN with lasso
+
+### (a)
+
+```{r}
+library(FNN)
+library(glmnet)
+set.seed(43252)
+n = 400
+p = 30
+lambda = 10^seq(0, -4, length.out = 41)
+results = data.frame(Setting = c("Independent", "Correlated"),
+                     KNN_MSE = NA, Lasso_MSE = NA, Lambda = NA, Nonzero = NA)
+for (l in 1:2) {
+  Sigma = diag(p)
+  if (l == 2) Sigma = 0.8 + 0.2*diag(p)
+  X = matrix(rnorm((n + 1000)*p), ncol = p) %*% chol(Sigma)
+  y = 0.5*X[,1] + sin(X[,2]) - 0.3*X[,3]^2 +
+    rnorm(n + 1000, sd = 0.1)
+  test.X = X[401:1400,]
+  test.y = y[401:1400]
+  X = X[1:400,]
+  y = y[1:400]
+  # KNN
+  knn.fit = knn.reg(X, test.X, y, k = 5, algorithm = "brute")
+  results$KNN_MSE[l] = mean((test.y - knn.fit$pred)^2)
+  # 10-fold CV for lasso
+  fold = sample(rep(1:10, each = 40))
+  cv.mse = matrix(NA, 10, length(lambda))
+  for (m in 1:10) {
+    X.mean = colMeans(X[fold != m,])
+    X.fit = sweep(X[fold != m,], 2, X.mean, "-")
+    X.sd = sqrt(colMeans(X.fit^2))
+    X.fit = sweep(X.fit, 2, X.sd, "/")
+    X.valid = sweep(X[fold == m,], 2, X.mean, "-")
+    X.valid = sweep(X.valid, 2, X.sd, "/")
+    y.mean = mean(y[fold != m])
+    lasso.fit = glmnet(X.fit, y[fold != m] - y.mean, alpha = 1,
+                       lambda = lambda, intercept = FALSE, standardize = FALSE)
+    y.hat = predict(lasso.fit, X.valid, s = lambda) + y.mean
+    cv.mse[m,] = colMeans((y[fold == m] - y.hat)^2)
+  }
+  lambda.min = lambda[which.min(colMeans(cv.mse))]
+  # Refit lasso on full training data
+  X.mean = colMeans(X)
+  X.fit = sweep(X, 2, X.mean, "-")
+  X.sd = sqrt(colMeans(X.fit^2))
+  X.fit = sweep(X.fit, 2, X.sd, "/")
+  test.X.fit = sweep(test.X, 2, X.mean, "-")
+  test.X.fit = sweep(test.X.fit, 2, X.sd, "/")
+  y.mean = mean(y)
+  lasso.fit = glmnet(X.fit, y - y.mean, alpha = 1, lambda = lambda,
+                     intercept = FALSE, standardize = FALSE)
+  test.pred = as.vector(predict(lasso.fit, test.X.fit, s = lambda.min)) + y.mean
+  results$Lasso_MSE[l] = mean((test.y - test.pred)^2)
+  results$Lambda[l] = lambda.min
+  results$Nonzero[l] =
+    sum(coef(lasso.fit, s = lambda.min)[-1,1] != 0)
+}
+results
+```
+
+### (b)
+
+Lasso has a lower test MSE with independent predictors, whereas KNN has a
+lower test MSE with correlated predictors. With independent predictors,
+many irrelevant variables affect the Euclidean distance, which can make
+KNN choose less useful neighbors. With correlated predictors, the variables
+share more information, so the neighborhoods may better reflect the relevant
+predictors. Lasso is different because it can shrink some coefficients to
+zero instead of using every predictor equally.
+
+### (c)
+
+The true model contains nonlinear terms, $\sin(X_2)$ and $X_3^2$, while the
+lasso model uses only linear terms. Therefore, lasso cannot represent the
+true response function exactly. KNN does not assume a linear form, but its
+performance depends on the quality of the neighbors. A single dataset in
+each setting is not enough to conclude that correlation always helps KNN
+or that one method is always better.
+
+## Question 3: Observed dimension and latent dimension
+
+### (a)
+
+```{r}
+library(FNN)
+set.seed(43254)
+p = 100
+m_values = c(3, 30)
+k_values = seq(2, 82, 8)
+test_mse = matrix(NA, length(k_values), 2)
+for (m in m_values) {
+  A = matrix(runif(p*m, -2, 2), p, m)
+  Z = matrix(rnorm(400*m), 400, m)
+  X = Z %*% t(A) + matrix(rnorm(400*p), 400, p)
+  y = Z[,1] + Z[,2] + rnorm(400)
+  for (k in k_values) {
+    knn.fit = knn.reg(X[1:200,], X[201:400,], y[1:200],
+                      k = k, algorithm = "brute")
+    test_mse[match(k, k_values), match(m, m_values)] =
+      mean((y[201:400] - knn.fit$pred)^2)
+  }
+}
+data.frame(k = k_values, m3 = test_mse[,1], m30 = test_mse[,2])
+```
+
+### (b)
+
+```{r}
+nsim = 50
+test_mse = array(NA, c(nsim, length(k_values), 2))
+for (l in 1:nsim) {
+  for (m in m_values) {
+    A = matrix(runif(p*m, -2, 2), p, m)
+    Z = matrix(rnorm(400*m), 400, m)
+    X = Z %*% t(A) + matrix(rnorm(400*p), 400, p)
+    y = Z[,1] + Z[,2] + rnorm(400)
+    for (k in k_values) {
+      knn.fit = knn.reg(X[1:200,], X[201:400,], y[1:200],
+                        k = k, algorithm = "brute")
+      test_mse[l, match(k, k_values), match(m, m_values)] =
+        mean((y[201:400] - knn.fit$pred)^2)
+    }
+  }
+}
+mean_mse = apply(test_mse, c(2,3), mean)
+```
+
+```{r}
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.5
+matplot(
+  k_values,
+  mean_mse,
+  type = "b",
+  pch = c(1, 2),
+  lty = 1,
+  col = c("deepskyblue3", "darkorange"),
+  xlab = "Number of neighbors k",
+  ylab = "Average test MSE"
+)
+legend(
+  "topright",
+  c("m = 3", "m = 30"),
+  col = c("deepskyblue3", "darkorange"),
+  lty = 1,
+  pch = c(1, 2)
+)
+```
+
+### (c)
+
+When $m=3$, most of the structured variation in the 100 observed predictors
+is driven by only three latent variables, so distances can better reflect
+the relevant latent structure. When $m=30$, many additional latent directions
+affect distances without affecting the response, making KNN neighborhoods
+less informative.
+
+The noise $\boldsymbol{\eta}_i$ also changes the observed distances. Without
+this noise, $\mathbf{A}\mathbf{Z}_i$ lies in the column space of $\mathbf{A}$,
+whose dimension is at most $m$. Independent noise in all 100 coordinates
+means that the observed data are not confined to that space.
+
+## Question 4: Classify handwritten digits
+
+### (a)
+
+```{r}
+library(ElemStatLearn)
+euclidean_distance = function(x0, X) {
+  sqrt(rowSums(sweep(X, 2, x0, "-")^2))
+}
+manhattan_distance = function(x0, X) {
+  rowSums(abs(sweep(X, 2, x0, "-")))
+}
+X = zip.train[1:1000, -1]
+y = zip.train[1:1000, 1]
+X_test = zip.test[1:500, -1]
+y_test = zip.test[1:500, 1]
+knn_classify = function(X, y, X_test, distance) {
+  y_hat = integer(nrow(X_test))
+  for (i in 1:nrow(X_test)) {
+    d = distance(X_test[i,], X)
+    neighbors = order(d, 1:nrow(X))[1:5]
+    y_hat[i] =
+      which.max(tabulate(y[neighbors] + 1, nbins = 10)) - 1
+  }
+  y_hat
+}
+```
+
+### (b)
+
+```{r}
+#| echo: false
+y_hat = cbind(
+  Euclidean = knn_classify(X, y, X_test, euclidean_distance),
+  Manhattan = knn_classify(X, y, X_test, manhattan_distance)
+)
+for (l in 1:2) {
+  cat(colnames(y_hat)[l], "test error:", mean(y_hat[,l] != y_test), "\n")
+  print(table(Predicted = factor(y_hat[,l], levels = 0:9),
+              True = factor(y_test, levels = 0:9)))
+}
+```
+
+Euclidean distance gives a test error of 0.122, while Manhattan distance
+gives a test error of 0.138. The most common confusion is a true digit 2
+being predicted as 0. Other frequent errors include 5 predicted as 0 or 3,
+9 predicted as 7, and 4 predicted as 9.
+
+### (c)
+
+```{r}
+#| echo: false
+#| fig-width: 9
+#| fig-height: 3
+#| results: hide
+incorrect = which(y_hat[,1] != y_test)[1:3]
+old_par = par(mfrow = c(1,3), mar = c(1,1,3,1))
+for (i in incorrect) {
+  image(
+    zip2image(zip.test, i),
+    col = gray(256:0/256),
+    zlim = c(0,1),
+    xlab = "",
+    ylab = "",
+    axes = FALSE,
+    main = paste(
+      "True:", y_test[i],
+      "Predicted:", y_hat[i,1]
+    )
+  )
+}
+par(old_par)
+```
+
+```{r}
+#| echo: false
+sum(y_hat[,1] != y_hat[,2])
+table(
+  Euclidean_correct = y_hat[,1] == y_test,
+  Manhattan_correct = y_hat[,2] == y_test
+)
+```
+
+The first three Euclidean errors are 6 predicted as 0, 2 predicted as 0,
+and 4 predicted as 7. These mistakes are visually understandable because
+the shapes are somewhat unusual and resemble the predicted digits.
+
+The two distance measures give different predictions on 22 images.
+Euclidean is correct while Manhattan is wrong on 11 images, while the
+reverse occurs on 3 images. On the remaining 8 images, both methods are
+wrong but predict different digits. Therefore, two methods can have similar
+overall error rates while still making mistakes on different observations.
+
+## Question 5: Create a plot-formatting skill
+
+### (a)
+
+The skill is saved in `format-homework-plots/SKILL.md`. Its description
+limits its use to STAT 432 homework plots and requires an explicit request.
+
+### (b)
+
+I asked the agent to install the skill and apply it to the Question 1 plot.
+The original plot is retained in Question 1. The revised version below
+uses the same plotted values and axis ranges, with a title, thicker lines,
+distinct line types and point shapes, and a legend above the plotting area.
+
+```{r}
+#| label: q1-formatted
+#| echo: false
+#| fig-width: 7
+#| fig-height: 4.5
+old_par = par(
+  mar = c(4.8, 5.0, 5.0, 1.2),
+  mgp = c(2.8, 0.7, 0),
+  cex.axis = 1.0,
+  cex.lab = 1.1,
+  cex.main = 1.2,
+  las = 1,
+  bty = "l"
+)
+plot_colors = c("#D55E00", "#0072B2", "#333333")
+plot_types = c(2, 3, 1)
+plot_points = c(16, 17, 15)
+matplot(
+  q1_plot_data$k,
+  as.matrix(q1_plot_data[c("squared_bias", "variance", "MSE")]),
+  type = "b",
+  lwd = 2,
+  pch = plot_points,
+  lty = plot_types,
+  cex = 0.85,
+  col = plot_colors,
+  xlab = "Number of neighbors k",
+  ylab = "Squared error",
+  xaxt = "n",
+  ylim = c(0, max(q1_plot_data[c("squared_bias", "variance", "MSE")]))
+)
+axis(1, at = q1_plot_data$k[seq(1, nrow(q1_plot_data), by = 2)])
+title(main = "KNN bias-variance trade-off", line = 2.5)
+legend(
+  "top",
+  inset = c(0, -0.17),
+  legend = c("Squared bias", "Variance", "MSE"),
+  col = plot_colors,
+  lty = plot_types,
+  pch = plot_points,
+  lwd = 2,
+  pt.cex = 0.85,
+  cex = 0.9,
+  x.intersp = 1.4,
+  horiz = TRUE,
+  bty = "n",
+  xpd = NA
+)
+par(old_par)
+```
+
+### (c)
+
+I chose these rules to improve readability while preserving the original
+analysis. I prefer the revised plot because it is easier to read and makes
+the differences between squared bias, variance, and MSE clearer. The
+formatting changes did not alter any data, calculations, or results, so I
+decided to keep the skill.
+
+```{=latex}
+\newpage
+```
+
+The final `SKILL.md` content is:
+
+```markdown
+---
+name: format-homework-plots
+description: Use only when the user explicitly requests this skill to improve the formatting of STAT 432 homework plots in R or Python.
+---
+
+# STAT 432 Plot Formatting
+
+- Preserve the original data, calculations, and statistical meaning.
+- Make important trends and differences visually clear without exaggerating them.
+- Use sufficient margins so titles, axis labels, tick labels, and legends are not clipped.
+- Use a short and informative title.
+- Use clear axis labels and readable tick labels.
+- Use high-contrast, distinguishable colors for multiple curves, and avoid colors that are too similar.
+- Use different point shapes or line types when multiple curves appear in the same plot.
+- Use thicker lines and appropriately sized points so important details are easy to see.
+- Use readable font sizes for titles, axes, and legends.
+- Keep the figure size balanced and avoid unnecessary visual clutter.
+- Apply these rules to existing R or Python plotting code without changing the underlying analysis.
+```
