@@ -310,7 +310,6 @@ knn_classify = function(X, y, X_test, distance) {
 ### (b)
 
 ```{r}
-#| echo: false
 y_hat = cbind(
   Euclidean = knn_classify(X, y, X_test, euclidean_distance),
   Manhattan = knn_classify(X, y, X_test, manhattan_distance)
@@ -330,36 +329,24 @@ being predicted as 0. Other frequent errors include 5 predicted as 0 or 3,
 ### (c)
 
 ```{r}
-#| echo: false
 #| fig-width: 9
 #| fig-height: 3
+#| fig-show: hold
 #| results: hide
 incorrect = which(y_hat[,1] != y_test)[1:3]
 old_par = par(mfrow = c(1,3), mar = c(1,1,3,1))
 for (i in incorrect) {
-  image(
-    zip2image(zip.test, i),
-    col = gray(256:0/256),
-    zlim = c(0,1),
-    xlab = "",
-    ylab = "",
-    axes = FALSE,
-    main = paste(
-      "True:", y_test[i],
-      "Predicted:", y_hat[i,1]
-    )
-  )
+  image(zip2image(zip.test, i), col = gray(256:0/256), zlim = c(0,1),
+        xlab = "", ylab = "", axes = FALSE,
+        main = paste("True:", y_test[i], "Predicted:", y_hat[i,1]))
 }
 par(old_par)
 ```
 
 ```{r}
-#| echo: false
 sum(y_hat[,1] != y_hat[,2])
-table(
-  Euclidean_correct = y_hat[,1] == y_test,
-  Manhattan_correct = y_hat[,2] == y_test
-)
+table(Euclidean_correct = y_hat[,1] == y_test,
+      Manhattan_correct = y_hat[,2] == y_test)
 ```
 
 The first three Euclidean errors are 6 predicted as 0, 2 predicted as 0,
@@ -381,7 +368,8 @@ limits its use to STAT 432 homework plots and requires an explicit request.
 
 ### (b)
 
-I asked the agent to install the skill and apply it to the Question 1 plot.
+I asked the agent to install the skill. I then explicitly requested that it
+use `format-homework-plots` to improve the formatting of my Question 1 plot.
 The original plot is retained in Question 1. The revised version below
 uses the same plotted values and axis ranges, with a title, thicker lines,
 distinct line types and point shapes, and a legend above the plotting area.
