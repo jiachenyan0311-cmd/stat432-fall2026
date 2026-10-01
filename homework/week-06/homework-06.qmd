@@ -1,0 +1,181 @@
+---
+title: "Homework 06"
+pagetitle: "Homework 06"
+body-classes: "lecture-page practice-page"
+format:
+  html:
+    embed-resources: true
+    html-math-method: mathml
+    page-layout: full
+    toc: true
+    toc-location: body
+    toc-title: "On this page"
+    toc-depth: 2
+---
+
+## Question 1: Compare KNN and logistic regression
+
+Use [breast-cancer.csv](data/breast-cancer.csv), which contains 569 cases from the [Wisconsin Diagnostic Breast Cancer dataset](https://archive.ics.uci.edu/dataset/17/breast%2Bcancer%2Bwisconsin%2Bdiagnostic). Predict `y` (1 for malignant and 0 for benign) using `mean_radius`, `mean_texture`, and `mean_smoothness`.
+
+Set a random seed and randomly split the observations into 70% training and 30% test data. Use the same split for every model. Standardize the predictors using the training means and standard deviations, and apply the same transformations to the test data.
+
+Fit ordinary logistic regression with an intercept and no penalty, and KNN with Euclidean distance, equal neighbor weights, and
+
+$$
+k\in\{5,15,25,35,45\}.
+$$
+
+Using the estimated probabilities for `y = 1` on the test data, plot all six ROC curves in one figure and report their AUC values. Which of the six fitted models do you prefer? Give a brief justification based on your results.
+
+### Answer
+
+```{r}
+library(FNN)
+library(pROC)
+
+data <- read.csv("data/breast-cancer.csv")
+set.seed(432)
+train_id <- sort(sample(seq_len(nrow(data)), floor(0.7 * nrow(data))))
+train <- data[train_id, ]
+test <- data[-train_id, ]
+predictors <- c("mean_radius", "mean_texture", "mean_smoothness")
+
+X_train <- scale(train[, predictors])
+X_test <- scale(test[, predictors],
+                center = attr(X_train, "scaled:center"),
+                scale = attr(X_train, "scaled:scale"))
+y_train <- train$y
+y_test <- test$y
+```
+
+```{r}
+fit <- glm(y ~ ., data = data.frame(y = y_train, X_train),
+           family = binomial())
+k_values <- c(5, 15, 25, 35, 45)
+model_names <- c("Logistic regression", paste("KNN, k =", k_values))
+
+# Each list entry contains one model's test probabilities.
+p_test <- list(predict(fit, newdata = data.frame(X_test), type = "response"))
+for (k in k_values) {
+  p_test[[length(p_test) + 1]] <- knn.reg(
+    train = X_train, test = X_test, y = y_train,
+    k = k, algorithm = "brute"
+  )$pred
+}
+
+roc_test <- lapply(p_test, function(p) {
+  roc(y_test, p, levels = c(0, 1), direction = "<", quiet = TRUE)
+})
+auc_test <- sapply(roc_test, function(r) as.numeric(auc(r)))
+data.frame(Model = model_names, Test_AUC = round(auc_test, 4))
+```
+
+```{r}
+#| fig-width: 6.5
+#| fig-height: 6
+colors <- c("black", "blue", "red", "green", "purple", "orange")
+plot(c(0, 1), c(0, 1), type = "n",
+     xlab = "False-positive rate", ylab = "True-positive rate")
+abline(0, 1, col = "gray", lty = 2)
+for (m in seq_along(roc_test)) {
+  lines(1 - roc_test[[m]]$specificities, roc_test[[m]]$sensitivities,
+        col = colors[m], lwd = 2)
+}
+legend("bottomright", sprintf("%s: AUC = %.4f", model_names, auc_test),
+       col = colors, lwd = 2, cex = 0.8, bty = "n")
+```
+
+I prefer logistic regression because it has the highest test AUC (0.9746) among the six fitted models. KNN with $k=45$ also performs very well, with an AUC of 0.9741. Based on the test results, logistic regression provides the best overall discrimination for this particular split.
+
+## Question 2: Training and test ROC curves
+
+Use the same data, training/test split, and standardization as in Question 1. Fit KNN with Euclidean distance, equal neighbor weights, and
+
+$$
+k\in\{1,3,5,10,20\}.
+$$
+
+Use each fitted model to estimate probabilities for both the training and test observations. For training predictions, include each observation itself among its $k$ nearest neighbors.
+
+For each $k$, use a separate panel to show the training and test ROC curves together. Report both AUC values.
+
+Explain the difference between training and test performance and how it changes with $k$. In particular, explain what happens at $k=1$ and why training performance may not reflect performance on new observations.
+
+### Answer
+
+Reuse the split and standardized predictors from Question 1.
+
+```{r}
+k_values <- c(1, 3, 5, 10, 20)
+roc_train <- roc_test <- vector("list", length(k_values))
+
+for (m in seq_along(k_values)) {
+  k <- k_values[m]
+  # Supplying X_train as test includes each observation itself.
+  p_train <- knn.reg(X_train, X_train, y_train,
+                     k = k, algorithm = "brute")$pred
+  p_test <- knn.reg(X_train, X_test, y_train,
+                    k = k, algorithm = "brute")$pred
+  roc_train[[m]] <- roc(y_train, p_train, levels = c(0, 1),
+                        direction = "<", quiet = TRUE)
+  roc_test[[m]] <- roc(y_test, p_test, levels = c(0, 1),
+                       direction = "<", quiet = TRUE)
+}
+
+auc_train <- sapply(roc_train, function(r) as.numeric(auc(r)))
+auc_test <- sapply(roc_test, function(r) as.numeric(auc(r)))
+data.frame(k = k_values, Training_AUC = round(auc_train, 4),
+           Test_AUC = round(auc_test, 4))
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 7
+old_par <- par(mfrow = c(2, 3), mar = c(4, 4, 2, 1))
+for (m in seq_along(k_values)) {
+  plot(1 - roc_train[[m]]$specificities, roc_train[[m]]$sensitivities,
+       type = "l", col = "blue", lwd = 2,
+       xlim = c(0, 1), ylim = c(0, 1), main = paste("k =", k_values[m]),
+       xlab = "False-positive rate", ylab = "True-positive rate")
+  lines(1 - roc_test[[m]]$specificities, roc_test[[m]]$sensitivities,
+        col = "red", lwd = 2, lty = 2)
+  abline(0, 1, col = "gray", lty = 3)
+  legend("bottomright",
+         c(sprintf("Training AUC = %.4f", auc_train[m]),
+           sprintf("Test AUC = %.4f", auc_test[m])),
+         col = c("blue", "red"), lty = c(1, 2), lwd = 2,
+         cex = 0.8, bty = "n")
+}
+plot.new()
+par(old_par)
+```
+
+At $k=1$, the training AUC is 1 because each training observation is included as its own nearest neighbor. Therefore, the model perfectly distinguishes between the two classes in the training data. However, test observations cannot use themselves as neighbors, resulting in a much lower test AUC.
+
+For this particular split, as $k$ increases, the test AUC improves and the gap between training and test performance becomes smaller. Using more neighbors makes the KNN model less flexible and reduces overfitting. This shows that strong performance on the training data does not necessarily imply equally strong performance on new observations.
+
+## Question 3: Peer evaluation of Homework 5
+
+You will receive two Homework 5 submissions to review. The instructor's GitHub account, **rqzhu-aide**, will open a **GitHub Issue** in the repository containing your Homework 5 submission. It will contain links to two other students' repositories, where you can find their submitted homework reports.
+
+Open your repository's **Issues** tab on GitHub to find the assignment. You may ask AI to explain GitHub Issues or help you locate the assignment.
+
+Choose **one specific mistake or item for improvement** from any question in either report.
+
+1. **Identify the mistake or item for improvement.** State which report and question you selected, and briefly describe what is wrong or could be improved. Examples include incorrect code, a calculation error, a misinterpretation of results, a plot that could communicate the findings more clearly, or anything else you think could be done better.
+
+2. **Explain your assessment.** Quote the relevant text, code, or figure caption exactly. Explain why the selected answer is incorrect or how it could be improved, referring to its reasoning, calculations, code, figures, or interpretation. **Complete this part yourself, without AI assistance.**
+
+3. **Provide a correction.** Write a corrected or improved answer to the selected question, including any calculations, code, or figures needed.
+
+After completing your review, **open a GitHub Issue in the repository containing the report you selected**. Identify the report and question, and include your assessment and a detailed revision plan explaining what the author should change and why. Include a link to your posted GitHub Issue in your Homework 6 answer.
+
+### Answer
+
+I posted my peer reviews in the following GitHub Issues:
+
+Report 1, Question 2(b):\
+https://github.com/chahakg/stat432-fall2026/issues/2
+
+Report 2, Question 3(b):\
+https://github.com/cmrogers7/stat432-fall2026/issues/2
