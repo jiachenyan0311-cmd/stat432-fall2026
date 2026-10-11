@@ -1,3 +1,7 @@
+# From homework/week-07: Rscript q4-analysis.R train
+# Review the training/CV results, then record the review in R:
+# writeLines("Training/CV reviewed; selection frozen.", "q4-output/training-review.txt")
+# Finally: Rscript q4-analysis.R test
 library(MASS)
 seed <- 43207
 out <- "q4-output"
