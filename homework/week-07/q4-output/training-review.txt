@@ -1,0 +1,12 @@
+Training-only review completed before final test evaluation.
+Seed: 43207. Stratified split: 369 training observations, 93 reserved test observations.
+Both candidates used the same ten stratified five-fold partitions.
+Every fold fitted means, covariances, and empirical priors from its training portion.
+No learned preprocessing was needed; famhist coding was specified in advance.
+All LDA/QDA fits completed without covariance-rank failures.
+Mean CV errors: LDA 0.2943089; QDA 0.3084011.
+Repetition wins: LDA 8, QDA 1, ties 1.
+Each placebo shuffle repeated both candidates and the minimum-error selection rule.
+Placebo results were used only for diagnosis, not selection or tuning.
+Selection frozen: ordinary LDA, using all nine predictors.
+Skill reviewed; no revisions were needed. Test outcomes had not been evaluated.
