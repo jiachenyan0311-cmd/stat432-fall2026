@@ -1,0 +1,3 @@
+"Model","Setting","Mean_CV_Error"
+"LDA","All 9 predictors",0.260021853146853
+"QDA","All 9 predictors",0.281471445221445
