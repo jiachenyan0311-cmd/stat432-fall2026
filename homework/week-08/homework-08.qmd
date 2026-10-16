@@ -13,29 +13,7 @@ format:
     toc-depth: 2
 ---
 
-The former kernel-tuning question has moved to Homework 09.
-
-Solutions for Questions 1 and 2 will be available after Monday, October 19, 2026. No solution can be provided for Question 3.
-
-For Questions 1 and 2, use either R or Python.
-
 ## Question 1: Boundary and margin
-
-Use `margin-geometry-20.csv` from the combined ZIP, which contains 20 observations with predictors $x_1,x_2$ and class labels $y\in\{-1,1\}$. Consider the score
-
-$$
-f(x)=0.8x_1+0.6x_2.
-$$
-
-Since $\|(0.8,0.6)\|_2=1$, the lines $f(x)=\pm1$ are each a distance 1 from the decision boundary $f(x)=0$.
-
-a. Calculate the distance from every observation to the decision boundary and its functional margin $yf(x)$. In a table, report these values and whether each observation is inside, on, or beyond the margin for its class. Compare $yf(x)$ with 1 to make this distinction.
-
-b. Plot the observations, the boundary $f(x)=0$, and the margin lines $f(x)=\pm1$. Distinguish the two classes and identify the observations inside the margin in your plot.
-
-c. Report how many observations are inside, on, and beyond the margin. Which observations are misclassified by this decision rule?
-
-Use the observation numbers supplied in the data. Set the $x_1$ axis to $[-3.2,3.2]$, set the $x_2$ axis to $[-3,3]$, and use an equal aspect ratio. Do not fit a new classifier for this question.
 
 ### Answer (a)
 
@@ -95,20 +73,6 @@ d$observation[m < 0]
 There are 6 observations inside the margin, 2 on the margin, and 12 beyond the margin. Observations 10 and 20 are misclassified because their functional margins $y_i f(x_i)$ are negative (both equal to $-0.2$).
 
 ## Question 2: Margin in four dimensions
-
-Use `margin-geometry-4d.csv` from the combined ZIP, which contains 50 observations with four predictors and class labels $y\in\{-1,1\}$. Consider the linear score
-
-$$
-f(\mathbf{x})=\beta_0+\mathbf{x}^{\mathsf T}\boldsymbol{\beta},
-\qquad
-\beta_0=-1,
-\quad
-\boldsymbol{\beta}=(1,2,-2,4)^{\mathsf T}.
-$$
-
-a. Project the observations onto the direction of $\boldsymbol{\beta}$ and plot their positions on one axis. Distinguish the two classes and mark the decision boundary. Use the plot to calculate the geometric margin $M$, the distance from the boundary to the closest observation.
-
-b. Express the same decision boundary using the SVM normalization in which the smallest functional margin $y_i f(\mathbf{x}_i)$ is set to 1. What are the corresponding values of $\boldsymbol{\beta}$ and $\beta_0$?
 
 ### Answer (a): Geometric margin
 
@@ -180,16 +144,6 @@ $$
 $$
 
 ## Question 3: Peer review of a Homework 7 skill
-
-The instructor's GitHub account, **rqzhu-aide**, will open a **GitHub Issue** in the repository containing your Homework 7 submission. It will link to **one** assigned student's repository.
-
-1. **Use the skill.** Find the complete skill definition in the assigned student's Homework 7 report. Copy it without changes into a local `SKILL.md` file in your own folder. You do not need to install it. Give your agent the path to the file and explicitly ask it to follow that skill while analyzing the `SAheart` data, using the response and predictor coding from Homework 7. Provide the necessary data information, but no additional preferences about methods, figures, model selection, or report style. Let the skill direct the analysis.
-
-   Monitor the time, your token use, and your weekly quota while the agent works. If the run is taking too long or using your allowance too quickly, you may send a **steer message** asking the agent to finish immediately, or stop the run and summarize what you observed. A steer message redirects an agent while it is working; learn how to send one in your AI tool before starting.
-
-2. **Write a peer review.** Read the student's submitted report and what the skill produced in your run. Give a brief overall assessment, followed by **three major items the author could improve**. You may comment on any aspect of the skill or report. For each item, explain what you observed, why it matters, and what you recommend changing. If you stopped the run early, explain where and why. Write the review yourself, without AI assistance.
-
-3. **Share your review.** Open a GitHub Issue in the assigned student's Homework 7 repository containing your review. Copy the same review into your Homework 8 submission report and include a link to the GitHub Issue.
 
 ### Answer
 
