@@ -1,0 +1,77 @@
+---
+title: "Homework 09"
+pagetitle: "Homework 09"
+body-classes: "lecture-page practice-page"
+format:
+  html:
+    embed-resources: true
+    html-math-method: mathml
+    page-layout: full
+    toc: true
+    toc-location: body
+    toc-title: "On this page"
+    toc-depth: 2
+---
+
+The kernel-tuning question moved here from Homework 08. A solution for Question 1 will be available after Monday, October 26, 2026. No solution will be provided for Question 2.
+
+## Question 1: Choosing an SVM kernel
+
+Use `saheart.csv` from the combined ZIP. As in Homework 7, predict `chd` using the same nine predictors, coding `famhist` as 1 for `Absent` and 2 for `Present`.
+
+Compare SVMs with a linear kernel, polynomial kernels of degrees 2 (quadratic), 3, and 4, and a radial basis kernel. Choose **no more than 20 candidate settings in total** across these kernels. Vary the cost $C$ for each kernel and the radial scale $\gamma$ for the radial kernel. State any other kernel settings you hold fixed.
+
+Divide the observations into five folds yourself and use the same folds for all candidates. Standardize predictors using only the fitting observations in each fold. Report the candidate settings and their mean cross-validation misclassification rates. Which kernel and settings do you prefer? Give a brief justification.
+
+### Question 1 response
+
+We used the South African heart disease dataset (462 observations) to predict `chd` from all nine predictors, coding `famhist` as 1 for Absent and 2 for Present. We compared linear, polynomial (degrees 2, 3, and 4), and radial basis function (RBF) SVMs. The 20 settings below were evaluated using the same five stratified folds (seed = 432). Predictors were standardized within each fold by fitting the transformation only to the fitting observations. For polynomial kernels, we fixed \(\gamma=1/9\) and `coef0 = 1`; `degree` and `coef0` do not apply to the linear or RBF kernels.
+
+| Kernel | Degree | \(C\) | \(\gamma\) | `coef0` | Mean CV error |
+|---|---:|---:|---:|---:|---:|
+| Linear | — | 0.01 | — | — | 0.2772 |
+| Linear | — | 0.1 | — | — | 0.2706 |
+| Linear | — | 1 | — | — | 0.2707 |
+| Linear | — | 10 | — | — | 0.2750 |
+| Polynomial | 2 | 0.1 | \(1/9\) | 1 | 0.2685 |
+| Polynomial | 2 | 1 | \(1/9\) | 1 | 0.2814 |
+| Polynomial | 2 | 10 | \(1/9\) | 1 | 0.3030 |
+| Polynomial | 3 | 0.1 | \(1/9\) | 1 | **0.2577** |
+| Polynomial | 3 | 1 | \(1/9\) | 1 | 0.3053 |
+| Polynomial | 3 | 10 | \(1/9\) | 1 | 0.3375 |
+| Polynomial | 4 | 0.1 | \(1/9\) | 1 | 0.2815 |
+| Polynomial | 4 | 1 | \(1/9\) | 1 | 0.3180 |
+| Polynomial | 4 | 10 | \(1/9\) | 1 | 0.3420 |
+| RBF | — | 0.1 | 0.01 | — | 0.3463 |
+| RBF | — | 1 | 0.01 | — | 0.2728 |
+| RBF | — | 100 | 0.01 | — | 0.2879 |
+| RBF | — | 0.1 | 0.1 | — | 0.3463 |
+| RBF | — | 1 | 0.1 | — | 0.2901 |
+| RBF | — | 10 | 0.1 | — | 0.3094 |
+| RBF | — | 1 | 1 | — | 0.3616 |
+
+The degree-3 polynomial SVM with \(C=0.1\), \(\gamma=1/9\), and `coef0 = 1` had the lowest mean cross-validation misclassification rate (0.2577, or 25.77%) among the 20 candidates, so we selected it as our preferred model. Its error was 1.29 percentage points lower than the best linear model (0.2706), 1.08 points lower than the best quadratic model (0.2685), and 1.51 points lower than the best RBF model (0.2728). These are modest differences: the cubic kernel had the lowest error in this comparison, but the results do not establish a substantial or statistically significant predictive advantage.
+
+The analysis script, exact fold assignments, and fold-level errors are saved in [q1-svm-cv.py](./q1-svm-cv.py), [q1-folds.csv](./results/q1-folds.csv), and [q1-cv-results.csv](./results/q1-cv-results.csv).
+
+## Question 2: Write and use a short SVM analysis skill
+
+In Homework 8, you reviewed another student's skill. Review the comments and suggestions you received on your own Homework 7 skill. Use what you learned from both sides of the peer review to write a new, shorter skill for SVM model fitting.
+
+**Write the skill by hand.** Create a `SKILL.md` with a short name and description in YAML frontmatter. Write the entire file yourself, without asking AI to draft or edit it. The instruction body after the closing `---` of the frontmatter must be **no more than 50 lines**, including blank lines. Keep the skill independent of any particular dataset, variable names, or observed results, and load it only when you explicitly invoke it.
+
+Your skill should direct the agent to:
+
+1. judge whether the data are suitable for an SVM analysis;
+2. choose which kernels to consider and explain why;
+3. identify tuning parameters and a method for tuning them;
+4. choose an evaluation method that supports selecting a final model;
+5. require a compact figure and table that justify the choices;
+6. interpret the fit and report the key numerical results; and
+7. prioritize the evidence needed to justify the final model in **no more than one printed page at 11-point font**.
+
+**Apply the skill.** Explicitly invoke your skill to analyze `saheart.csv`, using the same response, nine predictors, and `famhist` coding as in Question 1. Provide these data details when invoking the skill, not in the skill itself. Let the skill guide the analysis, then check the resulting report and calculations.
+
+**Submit the results.** Include the one-page, 11-point analysis report in your Homework 09 submission and append the complete contents of your `SKILL.md` afterward. The appended skill is outside the one-page limit.
+
+Completed analysis report with the one-page summary and skill appendix: [homework-09-q2-report.pdf](./homework-09-q2-report.pdf).
