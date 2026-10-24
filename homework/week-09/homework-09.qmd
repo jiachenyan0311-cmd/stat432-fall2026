@@ -11,6 +11,8 @@ format:
     toc-location: body
     toc-title: "On this page"
     toc-depth: 2
+header-includes:
+  - \usepackage{pdfpages}
 ---
 
 The kernel-tuning question moved here from Homework 08. A solution for Question 1 will be available after Monday, October 26, 2026. No solution will be provided for Question 2.
@@ -75,3 +77,9 @@ Your skill should direct the agent to:
 **Submit the results.** Include the one-page, 11-point analysis report in your Homework 09 submission and append the complete contents of your `SKILL.md` afterward. The appended skill is outside the one-page limit.
 
 Completed analysis report with the one-page summary and skill appendix: [homework-09-q2-report.pdf](./homework-09-q2-report.pdf).
+
+For the complete PDF submission, the two-page report (one-page analysis summary followed by the complete skill) is appended below.
+
+```{=latex}
+\includepdf[pages=-]{homework-09-q2-report.pdf}
+```
