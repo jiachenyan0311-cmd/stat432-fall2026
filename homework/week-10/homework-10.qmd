@@ -131,6 +131,8 @@ c. Apply the selected model to the test data and report the misclassification ra
 
 The analysis uses seed 43210. PCA is fit only to the 327 training observations, after filtering the first 1,000 rows to digits 1, 6, and 7; the resulting training means and loadings are then applied to the 317 held-out observations. Pixels are centered but not scaled. The RLT fits use 1,000 trees, bootstrap samples the size of the training set, and have reinforcement turned off.
 
+For each RLT fit, the OOB misclassification rate is taken from the final row of `AllError`, in the `nonPermute` column. This is the unpermuted baseline OOB error after all 1,000 trees; the predictor-named columns are permutation errors used for variable importance. I reran the default model and all 20 grid settings with the specified training split and seed, and the resulting `nonPermute` rates matched the values reported below.
+
 ### Answer (a)
 
 The RLT default settings for this training set were `mtry = 6` and `nmin = 5`. The default forest's OOB misclassification rate was **0.3200**.
