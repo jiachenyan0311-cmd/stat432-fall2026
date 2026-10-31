@@ -67,7 +67,7 @@ q1_results <- data.frame(
     0.04189769, 0.06366196, 0.08437350, 0.10195442, 0.11535320
   )
 )
-knitr::kable(q1_results, digits = 4)
+knitr::kable(q1_results, digits = 4, row.names = FALSE)
 ```
 
 ```{r}
@@ -159,6 +159,7 @@ q2_grid <- q2_grid[order(q2_grid$OOB_error), ]
 knitr::kable(
   q2_grid,
   digits = 4,
+  row.names = FALSE,
   col.names = c("mtry", "Node size (nmin)", "OOB error")
 )
 ```
@@ -181,6 +182,7 @@ q2_importance <- data.frame(
 knitr::kable(
   q2_importance,
   digits = 4,
+  row.names = FALSE,
   col.names = c("Principal component", "OOB permutation importance")
 )
 ```
